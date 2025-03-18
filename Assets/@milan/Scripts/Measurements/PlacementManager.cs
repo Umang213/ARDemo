@@ -1,11 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
-using UnityEngine.UI;
-using UnityEngine.SceneManagement;
-using Unity.XR.CoreUtils;
 
 public class PlacementManager : MonoBehaviour
 {
@@ -49,6 +49,7 @@ public class PlacementManager : MonoBehaviour
 
     private const float METERSINTOINCHES = 39.3700787f;
     private const int INCHESFORONEFEET = 12;
+    public RoomCreation roomCreation;
 
     private void Start()
     {
@@ -71,16 +72,16 @@ public class PlacementManager : MonoBehaviour
     /// </summary>
     void UpdateDistanceText()
     {
-        if (numOfPoints > 0 && lineEnable)
+        if (numOfPoints > 0)
         {
             UpdateMeasurement();
         }
-        else if (numOfPoints > 0 && !lineEnable)
+        /* else if (numOfPoints > 0 && !lineEnable)
         {
             float distanceUpdated = Vector3.Distance(previousPose, pointList[numOfPoints - 2].position);
             distanceText.text = ConvertDistance(distanceUpdated);
             midPoints[numOfPoints - 1].transform.GetChild(0).gameObject.SetActive(false);
-        }
+        } */
     }
 
     /// <summary>
@@ -125,7 +126,7 @@ public class PlacementManager : MonoBehaviour
     {
         if (placementPoseIsValid)
         {
-            lineEnable = !lineEnable;
+            // lineEnable = !lineEnable;
 
             GameObject newPoint;
             GameObject midPoint;
@@ -139,29 +140,36 @@ public class PlacementManager : MonoBehaviour
                 newPoint.transform.localScale = pointSize;
                 midPoint.transform.localScale = indicator.transform.localScale * 6;
             }
-            else
+            /* else
             {
                 newPoint.transform.localScale = indicator.transform.localScale;
                 midPoint.transform.localScale = indicator.transform.localScale * 6;
                 pointSize = newPoint.transform.localScale;
-            }
+            } */
 
             midPoints.Add(midPoint);
             pointList.Add(newPoint.transform);
             numOfPoints += 1;
 
-            if (numOfPoints > 0)
-            {
-                measurementText.SetActive(true);
-            }
+            /*  if (numOfPoints > 0)
+             {
+                 measurementText.SetActive(true);
+             } */
 
-            if (!lineEnable)
+            /* if (!lineEnable)
             {
                 midPoints[numOfPoints - 1].GetComponent<LineHandler>().AddLine(previousPose, indicator.transform.position);
             }
-
+ */
+            midPoints[numOfPoints - 1].GetComponent<LineHandler>().AddLine(previousPose, indicator.transform.position);
             previousPose = pointList[numOfPoints - 1].position;
             lineRenderer.SetPosition(0, previousPose);
+            if (numOfPoints > 2 && Vector3.Distance(pointList[0].position, newPoint.transform.position) < 0.1f)
+            {
+                // CreateLineBetweenPoints(pointList[numOfPoints - 1].position, pointList[0].position);
+                Debug.Log("Closed Area Formed");
+                roomCreation = RoomCreation.RoomHeight;
+            }
         }
     }
 
@@ -206,6 +214,12 @@ public class PlacementManager : MonoBehaviour
     /// </summary>
     private void UpdatePlacementPose()
     {
+        if (roomCreation != RoomCreation.FloorCreate)
+        {
+            placementPoseIsValid = false;
+            scanSurface.SetActive(false);
+            return;
+        }
         var screenCenter = Camera.main.ViewportToScreenPoint(new Vector3(0.5f, 0.5f));
         var hits = new List<ARRaycastHit>();
         arRaycastManager.Raycast(screenCenter, hits, trackableType);
@@ -265,4 +279,8 @@ public class PlacementManager : MonoBehaviour
 public enum ChartSize
 {
     m, cm, mm
+}
+public enum RoomCreation
+{
+    FloorCreate, RoomHeight, Stuff, None
 }
