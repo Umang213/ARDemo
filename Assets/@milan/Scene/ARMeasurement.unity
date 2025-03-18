@@ -353,7 +353,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &202037384
 RectTransform:
   m_ObjectHideFlags: 0
@@ -421,7 +421,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 583809371}
   m_Direction: 2
   m_MinValue: 0
-  m_MaxValue: 1
+  m_MaxValue: 2
   m_WholeNumbers: 0
   m_Value: 0
   m_OnValueChanged:
@@ -1015,7 +1015,7 @@ MonoBehaviour:
   arSessionOrigin: {fileID: 375263847}
   arRaycastManager: {fileID: 375263846}
   indicator: {fileID: 2063234207}
-  trackableType: 1
+  trackableType: 5
   warningText: {fileID: 2098336757}
   placementPose:
     position: {x: 0, y: 0, z: 0}
@@ -1028,14 +1028,13 @@ MonoBehaviour:
   midPointObject: {fileID: 5499394224710640365, guid: a66c849e38be811488abe0a7a8482ea4,
     type: 3}
   arCamera: {fileID: 375263844}
-  inchesDisplayLimitation: 36
-  minimumCameraDistanceToIndicator: 2
+  inchesDisplayLimit: 36
+  minCameraDistanceToIndicator: 2
   roomCreation: 0
   wallMaterial: {fileID: 2100000, guid: 8dcee5b2f15274599b849bdf24b8e12a, type: 2}
   ceilingMaterial: {fileID: 2100000, guid: 4904314b6628049109d2f626600e524f, type: 2}
   floorMaterial: {fileID: 2100000, guid: dd83a11d62d49425eb712da8c23f7da5, type: 2}
-  sliderPrefab: {fileID: 3834041019398310719, guid: adbf067f69c584012a1acf6348e3e059,
-    type: 3}
+  slider: {fileID: 202037385}
 --- !u!1 &583809370
 GameObject:
   m_ObjectHideFlags: 0
@@ -1069,7 +1068,7 @@ RectTransform:
   m_Father: {fileID: 337815583}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -1846,7 +1845,7 @@ RectTransform:
   m_Father: {fileID: 1311511819}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 10}
   m_Pivot: {x: 0.5, y: 0.5}

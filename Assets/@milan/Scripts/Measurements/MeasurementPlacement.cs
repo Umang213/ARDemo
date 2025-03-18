@@ -1,10 +1,11 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class MeasurementPlacement : MonoBehaviour
 {
     [SerializeField]
-    TextMeshProUGUI m_Object; 
+    Text m_Object;
 
     public GameObject midTextObject;
 
@@ -17,6 +18,7 @@ public class MeasurementPlacement : MonoBehaviour
 
     void Update()
     {
+        //midTextObject.transform.LookAt(Camera.main.transform);
         m_Object.text = measurement;
     }
 

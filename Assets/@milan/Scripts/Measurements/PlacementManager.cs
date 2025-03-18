@@ -10,46 +10,56 @@ using UnityEngine.XR.ARSubsystems;
 public class PlacementManager : MonoBehaviour
 {
     public ChartSize chartSize;
-    [SerializeField]
-    private XROrigin arSessionOrigin;
-    [SerializeField]
-    private ARRaycastManager arRaycastManager;
-    [SerializeField]
-    private GameObject indicator;
-    [SerializeField]
-    TrackableType trackableType = TrackableType.PlaneWithinPolygon;
-    [SerializeField]
-    private GameObject warningText;
 
+    [Header("AR Components")]
+    [SerializeField] private XROrigin arSessionOrigin;
+    [SerializeField] private ARRaycastManager arRaycastManager;
+    [SerializeField] private GameObject indicator;
+    [SerializeField] private TrackableType trackableType = TrackableType.PlaneWithinPolygon;
+    [SerializeField] private GameObject warningText;
+
+    [Header("Measurement Components")]
     private GameObject scanSurface;
     private LineRenderer lineRenderer;
-    private bool placementPoseIsValid = false;
-    private bool lineEnable = false;
+    private bool isPlacementPoseValid = false;
+    private bool isLineEnabled = false;
     private float distance = 0;
     private float finalScale = 0;
     private Vector3 pointSize;
-    private Vector3 mid = new Vector3(0, 0, 0);
-    private Vector3 previousPose = new Vector3(0, 0, 0);
-    private string distanceAsText = "";
-    private int numOfPoints = 0;
+    private Vector3 midPoint = Vector3.zero;
+    private Vector3 previousPose = Vector3.zero;
+    private string distanceTextValue = "";
+    private int numberOfPoints = 0;
 
-    List<Transform> pointList = new List<Transform>();
-    List<GameObject> midPoints = new List<GameObject>();
-    List<float> distancetoCamera = new List<float>();
+    private List<Transform> pointList = new List<Transform>();
+    private List<GameObject> midPoints = new List<GameObject>();
+    private List<float> distanceToCamera = new List<float>();
 
-    public Pose placementPose;
-    public Text distanceText;
-    public GameObject placementIndicator;
-    public GameObject measurementText;
-    public GameObject objectToPlace;
-    public GameObject midPointObject;
-    public GameObject arCamera;
-    public float inchesDisplayLimitation = 36f;
-    public float minimumCameraDistanceToIndicator = 2;
+    [SerializeField] private Pose placementPose;
+    [SerializeField] private Text distanceText;
+    [SerializeField] private GameObject placementIndicator;
+    [SerializeField] private GameObject measurementText;
+    [SerializeField] private GameObject objectToPlace;
+    [SerializeField] private GameObject midPointObject;
+    [SerializeField] private GameObject arCamera;
+    public float inchesDisplayLimit = 36f;
+    public float minCameraDistanceToIndicator = 2;
+    private const float METERS_TO_INCHES = 39.3700787f;
+    private const int INCHES_PER_FOOT = 12;
 
-    private const float METERSINTOINCHES = 39.3700787f;
-    private const int INCHESFORONEFEET = 12;
+    [Header("Room Creation")]
     public RoomCreation roomCreation;
+    [SerializeField] private Material wallMaterial;
+    [SerializeField] private Material ceilingMaterial;
+    [SerializeField] private Material floorMaterial;
+    [SerializeField] private Slider slider;
+    private GameObject roomMeshObject;
+    private GameObject floorMeshObject;
+    private GameObject ceilingMeshObject;
+    private float minHeight = 0.1f;
+    private float maxHeight = 3.0f;
+    private float currentHeight = 1.5f;
+    private List<Vector3> floorPoints = new List<Vector3>();
 
     private void Start()
     {
@@ -67,44 +77,29 @@ public class PlacementManager : MonoBehaviour
         UpdateDistanceText();
     }
 
-    /// <summary>
-    /// Get distance between two points and update the distance text based on ChartSize.
-    /// </summary>
     void UpdateDistanceText()
     {
-        if (numOfPoints > 0)
+        if (numberOfPoints > 0)
         {
             UpdateMeasurement();
         }
-        /* else if (numOfPoints > 0 && !lineEnable)
-        {
-            float distanceUpdated = Vector3.Distance(previousPose, pointList[numOfPoints - 2].position);
-            distanceText.text = ConvertDistance(distanceUpdated);
-            midPoints[numOfPoints - 1].transform.GetChild(0).gameObject.SetActive(false);
-        } */
     }
 
-    /// <summary>
-    /// Calculate and show distance between indicator and last point based on ChartSize.
-    /// </summary>
     void UpdateMeasurement()
     {
         distance = Vector3.Distance(previousPose, placementPose.position);
-        mid = midPoints[numOfPoints - 1].transform.position;
-        mid.x = previousPose.x + (indicator.transform.position.x - previousPose.x) / 2;
-        mid.y = previousPose.y + (indicator.transform.position.y - previousPose.y) / 2 + 0.001f;
-        mid.z = previousPose.z + (indicator.transform.position.z - previousPose.z) / 2;
-        midPoints[numOfPoints - 1].transform.position = mid;
+        midPoint = midPoints[numberOfPoints - 1].transform.position;
+        midPoint.x = previousPose.x + (indicator.transform.position.x - previousPose.x) / 2;
+        midPoint.y = previousPose.y + (indicator.transform.position.y - previousPose.y) / 2 + 0.001f;
+        midPoint.z = previousPose.z + (indicator.transform.position.z - previousPose.z) / 2;
+        midPoints[numberOfPoints - 1].transform.position = midPoint;
 
-        distanceAsText = ConvertDistance(distance);
-        distanceText.text = distanceAsText;
-        midPoints[numOfPoints - 1].GetComponent<MeasurementPlacement>().ChangeMeasurement(distanceAsText);
+        distanceTextValue = ConvertDistance(distance);
+        distanceText.text = distanceTextValue;
+        midPoints[numberOfPoints - 1].GetComponent<MeasurementPlacement>().ChangeMeasurement(distanceTextValue);
         lineRenderer.SetPosition(1, indicator.transform.position);
     }
 
-    /// <summary>
-    /// Convert distance to the selected measurement unit.
-    /// </summary>
     string ConvertDistance(float distanceMeters)
     {
         switch (chartSize)
@@ -116,21 +111,14 @@ public class PlacementManager : MonoBehaviour
             case ChartSize.mm:
                 return (distanceMeters * 1000).ToString("F0") + " mm";
             default:
-                return distanceMeters.ToString("F2") + " m"; // Default to meters
+                return distanceMeters.ToString("F2") + " m";
         }
     }
 
-    /// <summary>
-    /// Place new point and middle text object
-    /// </summary>
-    /// 
     public void PlaceNewPoint()
     {
-        if (placementPoseIsValid)
+        if (isPlacementPoseValid)
         {
-
-            // lineEnable = !lineEnable;
-
             GameObject newPoint = Instantiate(objectToPlace, indicator.transform.position, placementPose.rotation);
             GameObject midPoint = Instantiate(midPointObject, indicator.transform.position, placementPose.rotation);
 
@@ -139,63 +127,44 @@ public class PlacementManager : MonoBehaviour
                 floorPoints.Add(newPoint.transform.position);
             }
 
-            // If closed area is formed, move to RoomHeight
-            if (numOfPoints > 2 && Vector3.Distance(floorPoints[0], newPoint.transform.position) < 0.1f)
+            if (numberOfPoints > 2 && Vector3.Distance(floorPoints[0], newPoint.transform.position) < 0.1f)
             {
                 Debug.Log("Closed Area Formed");
                 roomCreation = RoomCreation.RoomHeight;
                 CreateMesh();
             }
 
-            newPoint = Instantiate(objectToPlace, indicator.transform.position, placementPose.rotation);
-            midPoint = Instantiate(midPointObject, indicator.transform.position, placementPose.rotation);
-            distancetoCamera.Add(Vector3.Distance(arCamera.transform.position, midPoint.transform.position));
-
-            if (numOfPoints > 1)
-            {
-                newPoint.transform.localScale = pointSize;
-                midPoint.transform.localScale = indicator.transform.localScale * 6;
-            }
-            /* else
-            {
-                newPoint.transform.localScale = indicator.transform.localScale;
-                midPoint.transform.localScale = indicator.transform.localScale * 6;
-                pointSize = newPoint.transform.localScale;
-            } */
+            newPoint.transform.localScale = pointSize;
+            midPoint.transform.localScale = indicator.transform.localScale * 6;
 
             midPoints.Add(midPoint);
             pointList.Add(newPoint.transform);
-            numOfPoints += 1;
+            numberOfPoints += 1;
 
-            /*  if (numOfPoints > 0)
-             {
-                 measurementText.SetActive(true);
-             } */
 
-            /* if (!lineEnable)
+            if (numberOfPoints == 1)
             {
-                midPoints[numOfPoints - 1].GetComponent<LineHandler>().AddLine(previousPose, indicator.transform.position);
+                previousPose = newPoint.transform.position;
             }
- */
-            midPoints[numOfPoints - 1].GetComponent<LineHandler>().AddLine(previousPose, indicator.transform.position);
-            previousPose = pointList[numOfPoints - 1].position;
-            lineRenderer.SetPosition(0, previousPose);
-            if (numOfPoints > 2 && Vector3.Distance(pointList[0].position, newPoint.transform.position) < 0.1f)
+            else
             {
-                // CreateLineBetweenPoints(pointList[numOfPoints - 1].position, pointList[0].position);
+                midPoints[numberOfPoints - 1].GetComponent<LineHandler>().AddLine(previousPose, newPoint.transform.position);
+                previousPose = newPoint.transform.position;
+            }
+
+            lineRenderer.SetPosition(0, previousPose);
+
+            if (numberOfPoints > 2 && Vector3.Distance(pointList[0].position, newPoint.transform.position) < 0.1f)
+            {
                 Debug.Log("Closed Area Formed");
                 roomCreation = RoomCreation.RoomHeight;
             }
         }
     }
 
-
-    /// <summary>
-    /// Enable and Disable indicator
-    /// </summary>
     private void UpdatePlacementIndicator()
     {
-        if (placementPoseIsValid)
+        if (isPlacementPoseValid)
         {
             placementIndicator.SetActive(true);
             placementIndicator.transform.position = placementPose.position;
@@ -203,23 +172,16 @@ public class PlacementManager : MonoBehaviour
         }
         else
         {
-
             placementIndicator.SetActive(false);
         }
     }
 
-    /// <summary>
-    /// Disable mesurement text for new measurement and reload the scene
-    /// </summary>
     public void Clear()
     {
         measurementText.SetActive(false);
         SceneManager.LoadScene("ARMeasurement");
     }
 
-    /// <summary>
-    /// Load Menu scene
-    /// </summary>
     public void Back()
     {
         measurementText.SetActive(false);
@@ -227,14 +189,11 @@ public class PlacementManager : MonoBehaviour
         LoaderUtility.Deinitialize();
     }
 
-    /// <summary>
-    /// Show placement indicator where raycast hit collide on surafce
-    /// </summary>
     private void UpdatePlacementPose()
     {
         if (roomCreation != RoomCreation.FloorCreate)
         {
-            placementPoseIsValid = false;
+            isPlacementPoseValid = false;
             scanSurface.SetActive(false);
             return;
         }
@@ -242,18 +201,15 @@ public class PlacementManager : MonoBehaviour
         var hits = new List<ARRaycastHit>();
         arRaycastManager.Raycast(screenCenter, hits, trackableType);
 
-        placementPoseIsValid = hits.Count > 0;
+        isPlacementPoseValid = hits.Count > 0;
 
-        if (placementPoseIsValid)
+        if (isPlacementPoseValid)
         {
             placementPose = hits[0].pose;
             scanSurface.SetActive(false);
         }
     }
 
-    /// <summary>
-    /// Check camera and surafce distance, if disatnce more than 2m indicator disable
-    /// </summary>
     void UpdateDistanceFromCamera()
     {
         if (roomCreation != RoomCreation.FloorCreate)
@@ -267,7 +223,7 @@ public class PlacementManager : MonoBehaviour
 
         indicator.transform.localScale = new Vector3(finalScale / 200, finalScale / 200, finalScale / 200);
 
-        if (cameraDistance > minimumCameraDistanceToIndicator)
+        if (cameraDistance > minCameraDistanceToIndicator)
         {
             StartCoroutine(ShowWarningText());
             indicator.SetActive(false);
@@ -281,12 +237,8 @@ public class PlacementManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Show warning text panel
-    /// </summary>
     IEnumerator ShowWarningText()
     {
-        //The amount of time that has passed
         float currentMovementTime = 0f;
 
         while (currentMovementTime < 1f)
@@ -296,27 +248,9 @@ public class PlacementManager : MonoBehaviour
             yield return null;
         }
     }
-    /// <summary>
-    /// //////////////////////////////////
-    /// </summary>
-    /// 
-    /// 
-    /// 
-    /// 
-    /// 
-    [SerializeField] private Material wallMaterial;
-    [SerializeField] private Material ceilingMaterial;
-    [SerializeField] private Material floorMaterial;
 
-    private GameObject roomMeshObject;
-    private GameObject floorMeshObject;
-    private GameObject ceilingMeshObject;
-    private Slider heightSlider;
-    private float minHeight = 0.1f;
-    private float maxHeight = 3.0f;
-    private float currentHeight = 1.5f;
-    private List<Vector3> floorPoints = new List<Vector3>();
-    public void CreateMesh()
+    #region  Mesh Creation
+    void CreateMesh()
     {
         if (floorPoints.Count < 3) return;
 
@@ -333,14 +267,13 @@ public class PlacementManager : MonoBehaviour
         List<Vector3> ceilingVertices = new List<Vector3>();
         List<int> ceilingTriangles = new List<int>();
 
-        // Step 1: Generate Walls
         for (int i = 0; i < floorPoints.Count; i++)
         {
             Vector3 basePoint = floorPoints[i];
             Vector3 topPoint = basePoint + Vector3.up * currentHeight;
 
-            wallVertices.Add(basePoint); // Bottom
-            wallVertices.Add(topPoint);  // Top
+            wallVertices.Add(basePoint);
+            wallVertices.Add(topPoint);
         }
 
         for (int i = 0; i < floorPoints.Count - 1; i++)
@@ -350,12 +283,10 @@ public class PlacementManager : MonoBehaviour
             int br = (i + 1) * 2;
             int tr = (i + 1) * 2 + 1;
 
-            // Front face of walls
             wallTriangles.Add(bl); wallTriangles.Add(br); wallTriangles.Add(tl);
             wallTriangles.Add(tl); wallTriangles.Add(br); wallTriangles.Add(tr);
         }
 
-        // Close last wall
         int lastBl = (floorPoints.Count - 1) * 2;
         int lastTl = (floorPoints.Count - 1) * 2 + 1;
         int firstBl = 0;
@@ -364,27 +295,33 @@ public class PlacementManager : MonoBehaviour
         wallTriangles.Add(lastBl); wallTriangles.Add(firstBl); wallTriangles.Add(lastTl);
         wallTriangles.Add(lastTl); wallTriangles.Add(firstBl); wallTriangles.Add(firstTl);
 
-        // Step 2: Generate Floor and Ceiling
         foreach (Vector3 point in floorPoints)
         {
-            floorVertices.Add(point);                            // Floor
-            ceilingVertices.Add(point + Vector3.up * currentHeight); // Ceiling
+            floorVertices.Add(point);
+            ceilingVertices.Add(point + Vector3.up * currentHeight);
         }
 
         for (int i = 1; i < floorPoints.Count - 1; i++)
         {
-            // Floor
+            // Floor Triangles (Double-Sided)
             floorTriangles.Add(0);
             floorTriangles.Add(i);
             floorTriangles.Add(i + 1);
 
-            // Ceiling
+            floorTriangles.Add(0);
+            floorTriangles.Add(i + 1);
+            floorTriangles.Add(i); // **Back Face (for double-sided rendering)**
+
+            // Ceiling Triangles (Double-Sided)
             ceilingTriangles.Add(0);
             ceilingTriangles.Add(i + 1);
             ceilingTriangles.Add(i);
+
+            ceilingTriangles.Add(0);
+            ceilingTriangles.Add(i);
+            ceilingTriangles.Add(i + 1); // **Back Face (for double-sided rendering)**
         }
 
-        // Step 3: Assign Mesh Data
         wallMesh.vertices = wallVertices.ToArray();
         wallMesh.triangles = wallTriangles.ToArray();
         wallMesh.RecalculateNormals();
@@ -397,7 +334,6 @@ public class PlacementManager : MonoBehaviour
         ceilingMesh.triangles = ceilingTriangles.ToArray();
         ceilingMesh.RecalculateNormals();
 
-        // Step 4: Create GameObjects
         roomMeshObject = new GameObject("Walls");
         MeshFilter wallMeshFilter = roomMeshObject.AddComponent<MeshFilter>();
         wallMeshFilter.mesh = wallMesh;
@@ -416,64 +352,40 @@ public class PlacementManager : MonoBehaviour
         MeshRenderer ceilingRenderer = ceilingMeshObject.AddComponent<MeshRenderer>();
         ceilingRenderer.material = ceilingMaterial;
 
-        CreateHeightSlider();
+        AdjustHeight(1.5f);
+        slider.onValueChanged.AddListener(AdjustHeight);
     }
 
-    void CreateHeightSlider()
-    {
 
-        GameObject sliderObj = Instantiate(sliderPrefab.gameObject);
-        sliderObj.transform.SetParent(transform, false);
-        sliderObj.transform.position = new Vector3(0, 1.5f, 0); // Adjust based on your need
-        sliderObj.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward);
 
-        Canvas canvas = sliderObj.GetComponentInChildren<Canvas>();
-        if (canvas != null)
-        {
-            canvas.renderMode = RenderMode.WorldSpace;
-            canvas.worldCamera = Camera.main;
-        }
-
-        heightSlider = sliderObj.GetComponentInChildren<Slider>();
-        if (heightSlider != null)
-        {
-            heightSlider.minValue = minHeight;
-            heightSlider.maxValue = maxHeight;
-            heightSlider.value = minHeight;
-            heightSlider.onValueChanged.AddListener(AdjustHeight);
-        }
-    }
-
-    public GameObject sliderPrefab;
-
-    public void AdjustHeight(float newHeight)
+    void AdjustHeight(float newHeight)
     {
         if (roomMeshObject == null || ceilingMeshObject == null) return;
 
+        // Ensure height is within limits
+        newHeight = Mathf.Clamp(newHeight, minHeight, maxHeight);
+
+        // Adjust Wall Mesh
         Mesh wallMesh = roomMeshObject.GetComponent<MeshFilter>().mesh;
         Vector3[] wallVertices = wallMesh.vertices;
-
-        // Adjust top vertices of walls
         for (int i = 1; i < wallVertices.Length; i += 2)
         {
             wallVertices[i].y = newHeight;
         }
-
         wallMesh.vertices = wallVertices;
         wallMesh.RecalculateNormals();
 
         // Adjust Ceiling Mesh
         Mesh ceilingMesh = ceilingMeshObject.GetComponent<MeshFilter>().mesh;
         Vector3[] ceilingVertices = ceilingMesh.vertices;
-
         for (int i = 0; i < ceilingVertices.Length; i++)
         {
             ceilingVertices[i].y = newHeight;
         }
-
         ceilingMesh.vertices = ceilingVertices;
         ceilingMesh.RecalculateNormals();
     }
+    #endregion
 }
 public enum ChartSize
 {

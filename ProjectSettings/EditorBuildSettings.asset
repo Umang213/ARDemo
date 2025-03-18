@@ -5,9 +5,12 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/ARDemo.unity
     guid: 4603378c6fb27d649adfcdf79cd919a0
+  - enabled: 1
+    path: Assets/@milan/Scene/ARMeasurement.unity
+    guid: 56f83b5aef6b2c64e9875aa35fc4f332
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: 6ee72d15cf39dd748a13eac57397b9af,
       type: 2}
