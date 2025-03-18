@@ -119,17 +119,33 @@ public class PlacementManager : MonoBehaviour
                 return distanceMeters.ToString("F2") + " m"; // Default to meters
         }
     }
+
     /// <summary>
     /// Place new point and middle text object
     /// </summary>
+    /// 
     public void PlaceNewPoint()
     {
         if (placementPoseIsValid)
         {
+
             // lineEnable = !lineEnable;
 
-            GameObject newPoint;
-            GameObject midPoint;
+            GameObject newPoint = Instantiate(objectToPlace, indicator.transform.position, placementPose.rotation);
+            GameObject midPoint = Instantiate(midPointObject, indicator.transform.position, placementPose.rotation);
+
+            if (roomCreation == RoomCreation.FloorCreate)
+            {
+                floorPoints.Add(newPoint.transform.position);
+            }
+
+            // If closed area is formed, move to RoomHeight
+            if (numOfPoints > 2 && Vector3.Distance(floorPoints[0], newPoint.transform.position) < 0.1f)
+            {
+                Debug.Log("Closed Area Formed");
+                roomCreation = RoomCreation.RoomHeight;
+                CreateMesh();
+            }
 
             newPoint = Instantiate(objectToPlace, indicator.transform.position, placementPose.rotation);
             midPoint = Instantiate(midPointObject, indicator.transform.position, placementPose.rotation);
@@ -172,6 +188,7 @@ public class PlacementManager : MonoBehaviour
             }
         }
     }
+
 
     /// <summary>
     /// Enable and Disable indicator
@@ -279,7 +296,184 @@ public class PlacementManager : MonoBehaviour
             yield return null;
         }
     }
+    /// <summary>
+    /// //////////////////////////////////
+    /// </summary>
+    /// 
+    /// 
+    /// 
+    /// 
+    /// 
+    [SerializeField] private Material wallMaterial;
+    [SerializeField] private Material ceilingMaterial;
+    [SerializeField] private Material floorMaterial;
 
+    private GameObject roomMeshObject;
+    private GameObject floorMeshObject;
+    private GameObject ceilingMeshObject;
+    private Slider heightSlider;
+    private float minHeight = 0.1f;
+    private float maxHeight = 3.0f;
+    private float currentHeight = 1.5f;
+    private List<Vector3> floorPoints = new List<Vector3>();
+    public void CreateMesh()
+    {
+        if (floorPoints.Count < 3) return;
+
+        Mesh wallMesh = new Mesh();
+        Mesh floorMesh = new Mesh();
+        Mesh ceilingMesh = new Mesh();
+
+        List<Vector3> wallVertices = new List<Vector3>();
+        List<int> wallTriangles = new List<int>();
+
+        List<Vector3> floorVertices = new List<Vector3>();
+        List<int> floorTriangles = new List<int>();
+
+        List<Vector3> ceilingVertices = new List<Vector3>();
+        List<int> ceilingTriangles = new List<int>();
+
+        // Step 1: Generate Walls
+        for (int i = 0; i < floorPoints.Count; i++)
+        {
+            Vector3 basePoint = floorPoints[i];
+            Vector3 topPoint = basePoint + Vector3.up * currentHeight;
+
+            wallVertices.Add(basePoint); // Bottom
+            wallVertices.Add(topPoint);  // Top
+        }
+
+        for (int i = 0; i < floorPoints.Count - 1; i++)
+        {
+            int bl = i * 2;
+            int tl = i * 2 + 1;
+            int br = (i + 1) * 2;
+            int tr = (i + 1) * 2 + 1;
+
+            // Front face of walls
+            wallTriangles.Add(bl); wallTriangles.Add(br); wallTriangles.Add(tl);
+            wallTriangles.Add(tl); wallTriangles.Add(br); wallTriangles.Add(tr);
+        }
+
+        // Close last wall
+        int lastBl = (floorPoints.Count - 1) * 2;
+        int lastTl = (floorPoints.Count - 1) * 2 + 1;
+        int firstBl = 0;
+        int firstTl = 1;
+
+        wallTriangles.Add(lastBl); wallTriangles.Add(firstBl); wallTriangles.Add(lastTl);
+        wallTriangles.Add(lastTl); wallTriangles.Add(firstBl); wallTriangles.Add(firstTl);
+
+        // Step 2: Generate Floor and Ceiling
+        foreach (Vector3 point in floorPoints)
+        {
+            floorVertices.Add(point);                            // Floor
+            ceilingVertices.Add(point + Vector3.up * currentHeight); // Ceiling
+        }
+
+        for (int i = 1; i < floorPoints.Count - 1; i++)
+        {
+            // Floor
+            floorTriangles.Add(0);
+            floorTriangles.Add(i);
+            floorTriangles.Add(i + 1);
+
+            // Ceiling
+            ceilingTriangles.Add(0);
+            ceilingTriangles.Add(i + 1);
+            ceilingTriangles.Add(i);
+        }
+
+        // Step 3: Assign Mesh Data
+        wallMesh.vertices = wallVertices.ToArray();
+        wallMesh.triangles = wallTriangles.ToArray();
+        wallMesh.RecalculateNormals();
+
+        floorMesh.vertices = floorVertices.ToArray();
+        floorMesh.triangles = floorTriangles.ToArray();
+        floorMesh.RecalculateNormals();
+
+        ceilingMesh.vertices = ceilingVertices.ToArray();
+        ceilingMesh.triangles = ceilingTriangles.ToArray();
+        ceilingMesh.RecalculateNormals();
+
+        // Step 4: Create GameObjects
+        roomMeshObject = new GameObject("Walls");
+        MeshFilter wallMeshFilter = roomMeshObject.AddComponent<MeshFilter>();
+        wallMeshFilter.mesh = wallMesh;
+        MeshRenderer wallRenderer = roomMeshObject.AddComponent<MeshRenderer>();
+        wallRenderer.material = wallMaterial;
+
+        floorMeshObject = new GameObject("Floor");
+        MeshFilter floorMeshFilter = floorMeshObject.AddComponent<MeshFilter>();
+        floorMeshFilter.mesh = floorMesh;
+        MeshRenderer floorRenderer = floorMeshObject.AddComponent<MeshRenderer>();
+        floorRenderer.material = floorMaterial;
+
+        ceilingMeshObject = new GameObject("Ceiling");
+        MeshFilter ceilingMeshFilter = ceilingMeshObject.AddComponent<MeshFilter>();
+        ceilingMeshFilter.mesh = ceilingMesh;
+        MeshRenderer ceilingRenderer = ceilingMeshObject.AddComponent<MeshRenderer>();
+        ceilingRenderer.material = ceilingMaterial;
+
+        CreateHeightSlider();
+    }
+
+    void CreateHeightSlider()
+    {
+
+        GameObject sliderObj = Instantiate(sliderPrefab.gameObject);
+        sliderObj.transform.SetParent(transform, false);
+        sliderObj.transform.position = new Vector3(0, 1.5f, 0); // Adjust based on your need
+        sliderObj.transform.rotation = Quaternion.LookRotation(Camera.main.transform.forward);
+
+        Canvas canvas = sliderObj.GetComponentInChildren<Canvas>();
+        if (canvas != null)
+        {
+            canvas.renderMode = RenderMode.WorldSpace;
+            canvas.worldCamera = Camera.main;
+        }
+
+        heightSlider = sliderObj.GetComponentInChildren<Slider>();
+        if (heightSlider != null)
+        {
+            heightSlider.minValue = minHeight;
+            heightSlider.maxValue = maxHeight;
+            heightSlider.value = minHeight;
+            heightSlider.onValueChanged.AddListener(AdjustHeight);
+        }
+    }
+
+    public GameObject sliderPrefab;
+
+    public void AdjustHeight(float newHeight)
+    {
+        if (roomMeshObject == null || ceilingMeshObject == null) return;
+
+        Mesh wallMesh = roomMeshObject.GetComponent<MeshFilter>().mesh;
+        Vector3[] wallVertices = wallMesh.vertices;
+
+        // Adjust top vertices of walls
+        for (int i = 1; i < wallVertices.Length; i += 2)
+        {
+            wallVertices[i].y = newHeight;
+        }
+
+        wallMesh.vertices = wallVertices;
+        wallMesh.RecalculateNormals();
+
+        // Adjust Ceiling Mesh
+        Mesh ceilingMesh = ceilingMeshObject.GetComponent<MeshFilter>().mesh;
+        Vector3[] ceilingVertices = ceilingMesh.vertices;
+
+        for (int i = 0; i < ceilingVertices.Length; i++)
+        {
+            ceilingVertices[i].y = newHeight;
+        }
+
+        ceilingMesh.vertices = ceilingVertices;
+        ceilingMesh.RecalculateNormals();
+    }
 }
 public enum ChartSize
 {
