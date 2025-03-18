@@ -186,6 +186,7 @@ public class PlacementManager : MonoBehaviour
         }
         else
         {
+
             placementIndicator.SetActive(false);
         }
     }
@@ -238,6 +239,10 @@ public class PlacementManager : MonoBehaviour
     /// </summary>
     void UpdateDistanceFromCamera()
     {
+        if (roomCreation != RoomCreation.FloorCreate)
+        {
+            return;
+        }
         float cameraDistance = Vector3.Distance(arCamera.transform.position, placementPose.position);
         finalScale = cameraDistance * 2f;
         placementIndicator.transform.localScale = new Vector3(finalScale, finalScale, finalScale);
