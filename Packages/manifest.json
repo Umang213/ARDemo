@@ -1,5 +1,10 @@
 {
   "dependencies": {
+    "com.ipaheartbeat.core.abstraction": "1.0.2",
+    "com.ipaheartbeat.core.dependency": "2.0.2",
+    "com.ipaheartbeat.core.extensions": "2.0.2",
+    "com.ipaheartbeat.core.observer-system": "1.0.2",
+    "com.ipaheartbeat.core.singleton": "1.0.2",
     "com.unity.collab-proxy": "2.7.1",
     "com.unity.feature.development": "1.0.2",
     "com.unity.inputsystem": "1.13.0",
@@ -45,5 +50,24 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0"
-  }
+  },
+  "scopedRegistries": [
+    {
+      "name": "C# Helper package by iPAHeartBeat",
+      "url": "https://npm.cloudsmith.io/ipaheartbeat/core",
+      "scopes": [
+        "com.ipaheartbeat"
+      ],
+      "overrideBuiltIns": false
+    },
+    {
+      "name": "Open UPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.dbrizov.naughtyattributes",
+        "com.google"
+      ],
+      "overrideBuiltIns": false
+    }
+  ]
 }

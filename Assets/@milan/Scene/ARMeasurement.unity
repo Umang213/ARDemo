@@ -803,18 +803,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa17d122634046b4a8e23048891fafc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &375263847 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2512387470528047739, guid: 48cb3fb68c91eb94999fd99957eb0cae,
-    type: 3}
-  m_PrefabInstance: {fileID: 375263841}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0cb9aa70a22847b5925ee5f067c10a9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &455771300
 GameObject:
   m_ObjectHideFlags: 0
@@ -872,6 +860,7 @@ GameObject:
   - component: {fileID: 515798664}
   - component: {fileID: 515798663}
   - component: {fileID: 515798665}
+  - component: {fileID: 515798666}
   m_Layer: 0
   m_Name: PlacementManager
   m_TagString: Untagged
@@ -1012,7 +1001,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   chartSize: 1
-  arSessionOrigin: {fileID: 375263847}
   arRaycastManager: {fileID: 375263846}
   indicator: {fileID: 2063234207}
   trackableType: 5
@@ -1028,13 +1016,24 @@ MonoBehaviour:
   midPointObject: {fileID: 5499394224710640365, guid: a66c849e38be811488abe0a7a8482ea4,
     type: 3}
   arCamera: {fileID: 375263844}
-  inchesDisplayLimit: 36
   minCameraDistanceToIndicator: 2
+--- !u!114 &515798666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515798662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e30a49ffa43147ccb5813085b1c1b61, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   roomCreation: 0
   wallMaterial: {fileID: 2100000, guid: 8dcee5b2f15274599b849bdf24b8e12a, type: 2}
   ceilingMaterial: {fileID: 2100000, guid: 4904314b6628049109d2f626600e524f, type: 2}
   floorMaterial: {fileID: 2100000, guid: dd83a11d62d49425eb712da8c23f7da5, type: 2}
-  slider: {fileID: 202037385}
+  heightSlider: {fileID: 202037385}
 --- !u!1 &583809370
 GameObject:
   m_ObjectHideFlags: 0
