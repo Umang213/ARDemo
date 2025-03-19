@@ -17,9 +17,9 @@ public class MeshCreatorAR : MonoBehaviour
     private GameObject roomMeshObject;
     private GameObject floorMeshObject;
     private GameObject ceilingMeshObject;
-    private float minHeight = 0.1f;
-    private float maxHeight = 3.0f;
-    private float currentHeight = 1.5f;
+    private float minHeight = 1f;
+    private float maxHeight = 2f;
+    private float currentHeight = 0.5f;
     internal List<Vector3> floorPoints = new List<Vector3>();
     void Awake()
     {
@@ -29,7 +29,7 @@ public class MeshCreatorAR : MonoBehaviour
     internal void CreateMesh()
     {
         if (floorPoints.Count < 3) return;
-
+        slider.gameObject.SetActive(true);
         // Convert to local space
         for (int i = 0; i < floorPoints.Count; i++)
             floorPoints[i] = transform.InverseTransformPoint(floorPoints[i]);
@@ -113,6 +113,9 @@ public class MeshCreatorAR : MonoBehaviour
         ApplyMeshToGameObject(ref ceilingMeshObject, "Ceiling", ceilingMesh, ceilingMaterial);
 
         AdjustHeight(currentHeight);
+        slider.minValue = minHeight;
+        slider.maxValue = maxHeight;
+        slider.value = currentHeight;
         slider.onValueChanged.AddListener(AdjustHeight);
     }
 
@@ -183,8 +186,41 @@ public class MeshCreatorAR : MonoBehaviour
     {
         if (obj != null) Destroy(obj);
         obj = new GameObject(name);
-        obj.AddComponent<MeshFilter>().mesh = mesh;
-        obj.AddComponent<MeshRenderer>().material = mat;
+        MeshFilter mf = obj.AddComponent<MeshFilter>();
+        mf.mesh = mesh;
+
+        MeshRenderer mr = obj.AddComponent<MeshRenderer>();
+        mr.material = mat;
+
+        AdjustMaterialTiling(mr, mesh);
+    }
+
+    /// <summary>
+    /// Adjusts the material tiling based on the mesh size.
+    /// </summary>
+    void AdjustMaterialTiling(MeshRenderer renderer, Mesh mesh)
+    {
+        if (renderer == null || mesh == null) return;
+
+        Bounds bounds = mesh.bounds;
+        Vector2 tiling = new Vector2(bounds.size.x, bounds.size.z); // Adjust for walls/floors
+
+        MaterialPropertyBlock mpb = new MaterialPropertyBlock();
+        renderer.GetPropertyBlock(mpb);
+
+        if (renderer.material.HasProperty("_BaseMap_ST")) // URP Shader Graph
+        {
+            Vector4 scaleOffset = mpb.GetVector("_BaseMap_ST");
+            scaleOffset.x = tiling.x * 100;
+            scaleOffset.y = tiling.y * 100;
+            mpb.SetVector("_BaseMap_ST", scaleOffset);
+        }
+        else if (renderer.material.HasProperty("_MainTex")) // Standard URP
+        {
+            renderer.material.mainTextureScale = tiling;
+        }
+
+        renderer.SetPropertyBlock(mpb);
     }
 
     void AdjustHeight(float newHeight)

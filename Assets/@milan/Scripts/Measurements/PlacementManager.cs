@@ -1,12 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
-using System.Linq;
 using iPAHeartBeat.Core.Dependency;
 
 public class PlacementManager : MonoBehaviour
@@ -105,7 +103,7 @@ public class PlacementManager : MonoBehaviour
 
     public void PlaceNewPoint()
     {
-        if (isPlacementPoseValid)
+        if (isPlacementPoseValid && !IsSelfIntersecting(previousPose, placementPose.position))
         {
             GameObject newPoint = Instantiate(objectToPlace, indicator.transform.position, placementPose.rotation);
             GameObject midPoint = Instantiate(midPointObject, indicator.transform.position, placementPose.rotation);
@@ -115,11 +113,12 @@ public class PlacementManager : MonoBehaviour
                 meshCreatorAR.floorPoints.Add(newPoint.transform.position);
             }
 
-            if (numberOfPoints > 2 && Vector3.Distance(meshCreatorAR.floorPoints[0], newPoint.transform.position) < 0.1f)
+            if (numberOfPoints > 2 && Vector3.Distance(pointList[0].position, newPoint.transform.position) < 0.1f)
             {
-                Debug.Log("Closed Area Formed");
+                Debug.Log("Room Closed Successfully");
                 meshCreatorAR.roomCreation = RoomCreation.RoomHeight;
                 meshCreatorAR.CreateMesh();
+                return;
             }
 
             newPoint.transform.localScale = pointSize;
@@ -149,12 +148,39 @@ public class PlacementManager : MonoBehaviour
             }
         }
     }
+    private bool IsSelfIntersecting(Vector3 start, Vector3 end)
+    {
+        int lastIndex = pointList.Count - 1;
+        for (int i = 0; i < lastIndex - 1; i++) // Ignore last line as it's not finalized yet
+        {
+            Vector3 lineStart = pointList[i].position;
+            Vector3 lineEnd = pointList[i + 1].position;
 
+            if (DoLinesIntersect(lineStart, lineEnd, start, end))
+            {
+                //                       Debug.LogError("Self-intersecting line detected!");
+                return true;
+            }
+        }
+        return false;
+    }
+    private bool DoLinesIntersect(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2)
+    {
+        float d = (a2.x - a1.x) * (b2.z - b1.z) - (a2.z - a1.z) * (b2.x - b1.x);
+        if (Mathf.Approximately(d, 0)) return false;
+
+        float u = ((b1.x - a1.x) * (b2.z - b1.z) - (b1.z - a1.z) * (b2.x - b1.x)) / d;
+        float v = ((b1.x - a1.x) * (a2.z - a1.z) - (b1.z - a1.z) * (a2.x - a1.x)) / d;
+
+        return (u >= 0 && u <= 1 && v >= 0 && v <= 1);
+    }
     private void UpdatePlacementIndicator()
     {
         if (isPlacementPoseValid)
         {
-            placementIndicator.SetActive(true);
+            bool isValidPlacement = pointList.Count < 2 || !IsSelfIntersecting(previousPose, placementPose.position);
+            placementIndicator.SetActive(isValidPlacement);
+            placementIndicator.GetComponentInChildren<MeshRenderer>().material.color = isValidPlacement ? Color.white : Color.red;
             placementIndicator.transform.position = placementPose.position;
             placementIndicator.transform.rotation = placementPose.rotation;
         }
